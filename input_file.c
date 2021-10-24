@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/* gliden64_cache_extract, GLideN64 TexCache Extraction tool for debugging
+/* gliden64_texstream_extract, GLideN64 TexCache Extraction tool for debugging
  *
  * SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
  */
 
-#include "gliden64_cache_extract.h"
+#include "gliden64_texstream_extract.h"
 #include <errno.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -60,15 +60,19 @@ int get_buffer_endian(void *buffer, size_t size, int print_error)
 	return 0;
 }
 
-int convert_file(void)
+int convert_file(long pos, uint64_t checksum)
 {
 	struct gliden64_file file;
 	int ret;
-	long pos = ftell(globals.in);
 
-	ret = get_buffer_endian(&file.checksum, sizeof(file.checksum), 0);
-	if (ret < 0)
-		return 0;
+	ret = fseek(globals.in, pos, SEEK_SET);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to switch to file position %#lx\n",
+			pos);
+		return ret;
+	}
+
+	file.checksum = checksum;
 
 	ret = get_item(file.width);
 	if (ret < 0) {
@@ -113,9 +117,7 @@ int convert_file(void)
 	}
 
 	if (globals.verbose >= VERBOSITY_FILE_HEADER) {
-		if (pos >= 0 && globals.in != stdin)
-			fprintf(stderr, "Offset: %#lx\n", pos);
-
+		fprintf(stderr, "Offset: %#lx\n", pos);
 		fprintf(stderr, "File header:\n");
 		fprintf(stderr, "\tchecksum: 0x%016"PRIX64"\n", file.checksum);
 		fprintf(stderr, "\twidth: %"PRIu32"\n", file.width);

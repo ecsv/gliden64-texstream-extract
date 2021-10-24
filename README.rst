@@ -2,25 +2,24 @@
 .. SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
 
 ======================
-gliden64_cache_extract
+gliden64_texstream_extract
 ======================
 
-gliden64_cache_extract is a debugging tool used to extract the content of a
-GLideN64 texture cache and to show extra information about the content.
+gliden64_texstream_extract is a debugging tool used to extract the content of a
+GLideN64 texture stream cache and to show extra information about the content.
 
 USAGE
 =====
 
-The uncompressed texture cache has to be given to gliden64_cache_extract using
-stdin. The compressed files are usually named ``*.htc``. The result is a v7
-tarball written to stdout.
+The texture stream cache has to be given to gliden64_texstream_extract via the
+``--input`` argument. The compressed files are usually named ``*.hts``. The
+result is a v7 tarball written to stdout.
 
-The input and output files can also be specified using --input and --output. The
-input will not be extracted (can be done using gunzip).
+The output file can also be specified using ``--output``.
 
 Extra information about the content and errors are printed on stdout.::
 
-  $ zcat MUPEN64PLUS.htc | gliden64_cache_extract -vv --bitmapv5 \
+  $ gliden64_texstream_extract --input MUPEN64PLUS.hts -vv --bitmapv5 \
     --prefix MUPEN64PLUS | tar x
   $ for i in *.bmp; do convert -strip -define png:format=png32 \
     -define png:compression-level=9  "${i}" "${i%.bmp}.png"; done
@@ -31,7 +30,7 @@ But they should be compatible with Glide64/GLideN64.
 
 More information about the parameters can be requested using::
 
-  $ gliden64_cache_extract --help
+  $ gliden64_texstream_extract --help
 
 CONTRIBUTING
 ============

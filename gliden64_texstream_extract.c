@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/* gliden64_cache_extract, GLideN64 TexCache Extraction tool for debugging
+/* gliden64_texstream_extract, GLideN64 TexCache Extraction tool for debugging
  *
  * SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
  */
 
 /**
  * Example usage:
- * zcat MUPEN64PLUS.htc | ./gliden64_cache_extract -vv -p MUPEN64PLUS > mupen64plus.tar
+ * ./gliden64_texstream_extract --input MUPEN64PLUS.hts -vv -p MUPEN64PLUS > mupen64plus.tar
  */
 
-#include "gliden64_cache_extract.h"
+#include "gliden64_texstream_extract.h"
 #include <errno.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,6 +22,12 @@ static int convert_input(void)
 {
 	int ret;
 	uint32_t config;
+	uint64_t checksum;
+	uint64_t texpos;
+	uint64_t storage_pos;
+	uint32_t storage_size;
+	uint32_t i;
+	long pos;
 
 	ret = get_item(config);
 	if (ret < 0) {
@@ -34,10 +41,58 @@ static int convert_input(void)
 		return ret;
 	}
 
-	while (!feof(globals.in)) {
-		ret = convert_file();
+	if (!(config & FILE_CACHE_MASK)) {
+		fprintf(stderr, "TexCache format not supported, please use gliden64-cache-extract\n");
+		return ret;
+	}
+
+	ret = get_item(storage_pos);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to read index storage offset\n");
+		return -EINVAL;
+	}
+
+	ret = fseek(globals.in, storage_pos, SEEK_SET);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to switch to storage index offset %#"PRIx64"\n",
+			storage_pos);
+		return ret;
+	}
+
+	ret = get_item(storage_size);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to read index storage size\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < storage_size; i++) {
+		ret = get_item(checksum);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to read checksum\n");
+			return -EINVAL;
+		}
+
+		ret = get_item(texpos);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to texture position\n");
+			return -EINVAL;
+		}
+
+		pos = ftell(globals.in);
+		if (pos < 0) {
+			fprintf(stderr, "Failed to get storage index %u file position\n", i);
+			return -EINVAL;
+		}
+
+		ret = convert_file(texpos, checksum);
 		if (ret < 0)
 			return ret;
+
+		ret = fseek(globals.in, pos, SEEK_SET);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to switch back to storage index\n");
+			return ret;
+		}
 	}
 
 	ret = write_tarblock(tarblock, sizeof(tarblock), 0);
@@ -57,14 +112,14 @@ static int convert_input(void)
 
 static void usage(int argc, char *argv[])
 {
-	const char *cmd = "gliden64_cache_extract";
+	const char *cmd = "gliden64_texstream_extract";
 
 	if (argc > 1)
 		cmd = argv[0];
 
 	printf("Usage: %s [options]\n\n", cmd);
 	printf("options:\n");
-	printf("\t -i,--input FILE                   Use FILE as uncompressed input file (default: stdin)\n");
+	printf("\t -i,--input FILE                   Use FILE as uncompressed input file\n");
 	printf("\t -o,--output FILE                  Use FILE as output file (default: stdout)\n");
 	printf("\t -p,--prefix NAME                  Add prefix to each file\n");
 	printf("\t -t,--type [hires|tex]             Type of the input\n");
@@ -94,7 +149,7 @@ static int init(int argc, char *argv[])
 	memset(&globals, 0, sizeof(globals));
 	memset(tarblock, 0, sizeof(tarblock));
 
-	globals.in = stdin;
+	globals.in = NULL;
 	globals.out = stdout;
 
 	while ((o = getopt_long(argc, argv, "vp:t:ebhi:o:", long_options, &options_index)) != -1) {
@@ -130,7 +185,7 @@ static int init(int argc, char *argv[])
 			globals.bitmapv5 = 1;
 			break;
 		case 'i':
-			if (globals.in != stdin)
+			if (globals.in)
 				fclose(globals.in);
 
 			globals.in = fopen(optarg, "rb");
@@ -153,6 +208,11 @@ static int init(int argc, char *argv[])
 			usage(argc, argv);
 			return -EINVAL;
 		}
+	}
+
+	if (!globals.in) {
+		fprintf(stderr, "No input file specified\n");
+		return -EINVAL;
 	}
 
 	return 0;

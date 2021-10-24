@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
-/* gliden64_cache_extract, GLideN64 TexCache Extraction tool for debugging
+/* gliden64_texstream_extract, GLideN64 TexCache Extraction tool for debugging
  *
  * SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
  */
@@ -216,7 +216,7 @@ struct tar_header {
 
 int parse_config(uint32_t config);
 
-int convert_file(void);
+int convert_file(long pos, uint64_t checksum);
 int get_buffer_endian(void *buffer, size_t size, int print_error);
 #define get_item(x) get_buffer_endian(&x, sizeof(x), 1)
 int prepare_file(struct gliden64_file *file);

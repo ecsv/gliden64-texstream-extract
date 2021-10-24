@@ -4,8 +4,8 @@
 #
 # SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
 
-BINARY_NAME = gliden64_cache_extract
-OBJ = gliden64_cache_extract.o input_config.o input_file.o convert_file.o output_file.o
+BINARY_NAME = gliden64_texstream_extract
+OBJ = gliden64_texstream_extract.o input_config.o input_file.o convert_file.o output_file.o
 
 # flags and options
 CFLAGS += -pedantic -Wall -W -std=gnu99 -MD

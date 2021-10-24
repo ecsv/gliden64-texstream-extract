@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/* gliden64_cache_extract, GLideN64 TexCache Extraction tool for debugging
+/* gliden64_texstream_extract, GLideN64 TexCache Extraction tool for debugging
  *
  * SPDX-FileCopyrightText: Sven Eckelmann <sven@narfation.org>
  */
 
-#include "gliden64_cache_extract.h"
+#include "gliden64_texstream_extract.h"
 #include <errno.h>
 #include <inttypes.h>
 #include <stddef.h>
